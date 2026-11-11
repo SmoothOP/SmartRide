@@ -380,7 +380,7 @@ function analyse(trips) {
   const findings = [
     `Peak demand is at ${peak.label}, averaging ${peak.value.toFixed(0)} students per departure.`,
     `${routeName(worst.routeId)} at ${String(worst.hour).padStart(2, '0')}:00 leaves about ${(worst.overflow / worst.n).toFixed(0)} students behind per weekday departure, with an average wait of ${(worst.wait / worst.n).toFixed(0)} min. It's the strongest case for an extra bus.`,
-    `${worstNoShow.label} has the highest no-show rate (${worstNoShow.value.toFixed(1)}%). Releasing those seats at the cutoff recovers ${noShows} seats over 4 weeks.`,
+    `${worstNoShow.label} has the highest no-show rate (${worstNoShow.value.toFixed(1)}%). Across all routes, releasing no-show seats at the boarding cutoff recovers ${noShows} seats over 4 weeks.`,
     `Longest average wait: ${waitByRoute[0].name} (${waitByRoute[0].wait.toFixed(0)} min).`,
   ]
 
