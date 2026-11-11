@@ -63,3 +63,8 @@ Admin → **Demo & settings**, then:
 - The queue-position check runs on the client before the atomic capacity transaction. In production it would move into a Cloud Function, with Firestore security rules locking direct writes.
 - Sign-in would use APU single sign-on instead of anonymous auth.
 - The admin dashboard is open for judging; production would require staff roles.
+
+## Team
+**Phish & Chips - GDG APU Hackathon**
+- **Mohammad Nwar Allobad**: Full-Stack Development, Backend & Deployment
+- **Myat Yie Mon**: Concept Development, Research, Survey & Project Planning
