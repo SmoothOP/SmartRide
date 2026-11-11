@@ -2,7 +2,7 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Theme tokens: light by default, .dark on <html> swaps them. Purple accent to sit naturally inside APSpace. */
+/* Theme tokens: light by default, .dark on <html> swaps them. APSpace's default blue accent, so it sits naturally inside the app. */
 :root {
   --canvas: #f5f5f8;
   --surface: #ffffff;
@@ -11,9 +11,9 @@
   --fg: #111118;
   --fg2: #3f3f4b;
   --muted: #6b6b7a;
-  --brand-50: #f5f3ff;
-  --brand-100: #e9e4ff;
-  --brand-900: #2d1d78;
+  --brand-50: #eef5ff;
+  --brand-100: #d9e9ff;
+  --brand-900: #0c3a7d;
   color-scheme: light;
 }
 .dark {
@@ -24,9 +24,9 @@
   --fg: #f4f4f6;
   --fg2: #c9c9d2;
   --muted: #8d8d9b;
-  --brand-50: rgb(139 116 255 / 0.10);
-  --brand-100: rgb(139 116 255 / 0.20);
-  --brand-900: #d9d0ff;
+  --brand-50: rgb(45 135 255 / 0.10);
+  --brand-100: rgb(45 135 255 / 0.22);
+  --brand-900: #cfe3ff;
   color-scheme: dark;
 }
 
@@ -42,9 +42,9 @@
   --color-brand-50: var(--brand-50);
   --color-brand-100: var(--brand-100);
   --color-brand-900: var(--brand-900);
-  --color-brand-500: #8b74ff;
-  --color-brand-600: #6c52e8;
-  --color-brand-700: #5a40d4;
+  --color-brand-500: #4d9bff;
+  --color-brand-600: #2d87ff;
+  --color-brand-700: #1a6fe0;
 }
 
 html, body, #root { min-height: 100%; }

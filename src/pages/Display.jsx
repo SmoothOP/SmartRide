@@ -38,10 +38,11 @@ export default function Display() {
           <Logo className="text-xl" />
           <h1 className="mt-4 text-2xl font-extrabold">Arrived? Scan to join the queue</h1>
           <p className="text-sm text-slate-500">Open the SmartRide app or your phone camera</p>
+          <p className="mt-1 rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Shown on the screen at the APU shuttle stop</p>
           <div className="mt-5">{code ? <QRImage key={code} text={url} size={320} /> : <div className="h-80 w-80 animate-pulse rounded-xl bg-slate-100" />}</div>
           <div className="mt-5 w-full">
             <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full bg-[#6c52e8] transition-[width] duration-200 ease-linear" style={{ width: `${(left / period) * 100}%` }} />
+              <div className="h-full bg-[#2d87ff] transition-[width] duration-200 ease-linear" style={{ width: `${(left / period) * 100}%` }} />
             </div>
             <p className="mt-2 text-center text-xs text-slate-500">New code in {Math.ceil(left / 1000)} s · photos of this code stop working</p>
           </div>
@@ -49,7 +50,10 @@ export default function Display() {
         </div>
 
         <div>
-          <h2 className="text-xl font-bold text-slate-200">Next departures from APU</h2>
+          <div className="flex items-center">
+            <h2 className="text-xl font-bold text-slate-200">Next departures from APU</h2>
+            <a href="/" className="ml-auto text-xs text-slate-500 hover:text-slate-300">← SmartRide home</a>
+          </div>
           <div className="mt-4 overflow-hidden rounded-3xl bg-[#1a1a1f]">
             {next.length === 0 && <p className="p-5 text-sm text-slate-400">No buses scheduled</p>}
             {next.map((b) => {

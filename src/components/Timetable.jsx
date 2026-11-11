@@ -1,24 +1,18 @@
 import { useState } from 'react'
-import { ROUTES, timesFrom, timesTo, runsOn, atTime } from '../lib/timetable'
+import { ROUTES, timesFrom, runsOn, atTime } from '../lib/timetable'
 import { useNow } from '../lib/hooks'
 
 /** Full APU shuttle timetable. Past departures are dimmed and the next one is highlighted. */
 export default function Timetable() {
-  const [dir, setDir] = useState('from')
   const [open, setOpen] = useState('lrt')
   const now = useNow(30000)
   const today = now
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-2">
-        {[['from', 'From APU'], ['to', 'To APU']].map(([id, label]) => (
-          <button key={id} onClick={() => setDir(id)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium ${dir === id ? 'bg-fg text-canvas' : 'bg-subtle text-fg2'}`}>{label}</button>
-        ))}
-      </div>
+      <p className="text-sm text-fg2">Departures from the APU shuttle stop</p>
       {ROUTES.map((r) => {
-        const times = dir === 'from' ? timesFrom(r.id) : timesTo(r.id)
+        const times = timesFrom(r.id)
         if (!times.length) return null
         const runs = runsOn(r, today)
         const nextIdx = runs ? times.findIndex((t) => atTime(today, t) > now) : -1
@@ -27,7 +21,7 @@ export default function Timetable() {
           <div key={r.id} className="card overflow-hidden">
             <button onClick={() => setOpen(isOpen ? null : r.id)} className="flex w-full items-center gap-2 px-4 py-3 text-left">
               <span className="text-sm font-bold uppercase tracking-wide">
-                {dir === 'from' ? <>APU <span className="text-brand-500">▸</span> {r.name}</> : <>{r.name} <span className="text-brand-500">▸</span> APU</>}
+                APU <span className="text-brand-500">▸</span> {r.name}
               </span>
               {r.fridayOnly && <span className="text-xs text-muted">(Friday only)</span>}
               <span className="ml-auto text-xs text-muted">

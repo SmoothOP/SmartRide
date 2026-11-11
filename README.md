@@ -31,10 +31,10 @@ Marked in the app with **✦ Gemini Enterprise · final round**:
 4. **Admin analytics agent:** grounded on trip data (Firestore → BigQuery / Google Sheets) for peak hours, no-show rates and where extra buses help. Sends a weekly summary.
 
 ### Real APU data
-Routes and departure times come from the APSpace Bus Shuttle Services timetable (`src/lib/timetable.js`): 13 destinations from APU, plus pickups to APU. Demo buses are seeded from the **next real departures**. The student app includes the full timetable.
+Routes and departure times come from the APSpace Bus Shuttle Services timetable (`src/lib/timetable.js`): 13 destinations from the APU shuttle stop. SmartRide only manages departures from APU, where the stop screen and boarding scanners are. Demo buses are seeded from the **next real departures**. The student app includes the full timetable.
 
 ### Where it would live
-SmartRide is designed as one **"Join the queue"** button inside APSpace → Bus Shuttle Services, opening this site with the student's APU sign-in. It uses a matching dark theme with a purple accent, plus a light/dark toggle.
+SmartRide is designed as one **"Join the queue"** button inside APSpace → Bus Shuttle Services, opening this site with the student's APU sign-in. It uses a matching dark theme with APSpace's default blue accent, plus a light/dark toggle.
 
 ## Tech stack
 React (Vite) · Tailwind CSS · Firebase Auth (anonymous) · Cloud Firestore (real-time) · `qrcode` · `html5-qrcode` · hosted on Vercel / Firebase Hosting.

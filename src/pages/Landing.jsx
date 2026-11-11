@@ -86,7 +86,7 @@ function IntegrationConcept() {
         <p className="mt-2 text-fg2">
           Students already check shuttle times in APSpace → Bus Shuttle Services. SmartRide adds a single
           <b> Join the queue</b> button there that opens SmartRide, already signed in with their APU account.
-          That's why SmartRide uses the same dark look and purple accent: it should feel like part of the app students already use.
+          That's why SmartRide uses the same dark look and blue accent: it should feel like part of the app students already use.
         </p>
         <ul className="mt-4 space-y-2 text-sm text-fg2">
           <li>• No new app to install. It's a page APSpace opens.</li>
@@ -101,10 +101,10 @@ function IntegrationConcept() {
           <p className="text-xs font-bold uppercase tracking-wide text-white/70">APU ▸ LRT Bukit Jalil</p>
           <div className="mt-2 grid grid-cols-3 gap-1 text-center text-sm tabular-nums">
             <span className="text-white/35">16:45</span><span className="text-white/35">16:50</span>
-            <span className="rounded-md bg-[#6c52e8] font-bold">17:00</span>
+            <span className="rounded-md bg-[#2d87ff] font-bold">17:00</span>
             <span>17:10</span><span>17:20</span><span>17:30</span>
           </div>
-          <div className="mt-3 rounded-xl bg-[#6c52e8] py-2.5 text-center text-sm font-semibold">Join the SmartRide queue →</div>
+          <div className="mt-3 rounded-xl bg-[#2d87ff] py-2.5 text-center text-sm font-semibold">Join the SmartRide queue →</div>
           <p className="mt-2 text-center text-[11px] text-white/50">12 waiting · 9 seats left on the 17:00</p>
         </div>
         <div className="mt-2 rounded-2xl bg-[#1a1a1f] p-3">

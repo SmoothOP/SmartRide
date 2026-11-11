@@ -37,7 +37,7 @@ export function TopBar({ title, children }) {
         {title && <span className="hidden text-sm text-muted sm:inline">/ {title}</span>}
         <nav className="order-last flex w-full gap-1 overflow-x-auto sm:order-none sm:ml-auto sm:w-auto">
           <NavLink to="/student" className={link}>Student</NavLink>
-          <NavLink to="/display" className={link}>Waiting area</NavLink>
+          <NavLink to="/display" className={link}>Stop screen</NavLink>
           <NavLink to="/scanner" className={link}>Scanner</NavLink>
           <NavLink to="/admin" className={link}>Admin</NavLink>
         </nav>

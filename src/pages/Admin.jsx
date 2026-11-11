@@ -92,6 +92,7 @@ function Operations({ busy, run }) {
                   <span className="text-sm text-muted">APU → {routeName(b.routeId)} · departs {fmtIn(b.departAt, now)}</span>
                 </div>
                 <CapacityBar bus={b} />
+                <p className="mt-2 text-xs text-muted">In production, the boarding cutoff happens automatically 2 min before departure and the bus is marked departed at its scheduled time. These buttons trigger them early for the demo.</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {b.status === 'scheduled' && (
                     <button className="btn-ghost px-3 py-1.5" disabled={busy}

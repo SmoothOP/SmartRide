@@ -1,6 +1,5 @@
 // APU shuttle timetable (from APSpace → Bus Shuttle Services, Nov 2026).
-// FROM_APU = departures leaving APU (what the SmartRide waiting area manages).
-// TO_APU   = pickups heading to APU (shown in the timetable view; each pickup point could get its own SmartRide display later).
+// SmartRide manages departures FROM the APU shuttle stop only, the one place with a waiting-area screen and boarding scanners.
 
 export const ROUTES = [
   { id: 'lrt', name: 'LRT Bukit Jalil' },
@@ -34,25 +33,8 @@ export const FROM_APU = {
   mosque: '12:30',
 }
 
-export const TO_APU = {
-  lrt: '07:30 07:35 07:40 07:50 07:55 08:00 08:05 08:15 08:20 08:25 08:30 08:35 08:45 09:00 09:10 09:20 09:30 09:50 10:00 10:05 10:10 10:15 10:30 10:35 10:45 11:00 11:05 11:10 11:25 11:40 12:10 12:30 12:45 13:00 13:15 13:20 13:25 13:40 14:10 14:25 14:40 15:05 15:20 15:40 15:55 16:10 16:25 17:10 17:20 17:30 18:20',
-  fortune: '08:00 08:15 08:30 09:00 09:15 09:30 10:00 10:15 10:30 11:00 11:30 12:00 13:30 14:30 15:30 16:20 16:40 17:40 18:10',
-  cog: '07:45 08:20 09:00 09:45 10:20 11:00 12:00 13:00 14:30 15:00 16:00',
-  kingston: '07:50 08:00 08:30 09:00 09:15 10:45 13:15 15:15',
-  parkhill: '07:45 08:15 08:45 09:15 10:15 11:15 13:45 14:45',
-  mvertica: '07:45 09:30 10:30 11:30 14:30 15:30',
-  bloomsvale: '07:45 09:30 11:00 13:30',
-  harmony: '07:55 09:40 11:10 13:40',
-  kuchai: '07:45 10:00 11:35 13:35',
-  maple: '08:05 10:20 11:10 13:10',
-  divo: '07:45 09:45 11:25 13:25',
-  bayu: '07:45 11:00',
-  mosque: '14:10',
-}
-
 const parse = (s) => s.split(' ').map((t) => t.trim()).filter(Boolean)
 export const timesFrom = (routeId) => parse(FROM_APU[routeId] ?? '')
-export const timesTo = (routeId) => parse(TO_APU[routeId] ?? '')
 
 export const routeName = (id) => ROUTES.find((r) => r.id === id)?.name ?? id
 // All timetable maths happens in Malaysia time (UTC+8, no daylight saving), whatever the device's own time zone is.
