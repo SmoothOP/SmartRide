@@ -11,16 +11,8 @@ export const firebaseConfig = {
   appId: '1:93345111622:web:49fb2a2c2460f2ec73f447',
 }
 
-// ─────────────────────────────────────────────────────────────
-// 2) Shuttle destinations. Rename these to APU's real routes.
-// ─────────────────────────────────────────────────────────────
-export const ROUTES = [
-  { id: 'lrt', name: 'LRT Bukit Jalil' },
-  { id: 'res', name: 'Student Residence' },
-  { id: 'mall', name: 'Pavilion Bukit Jalil' },
-]
-
-export const routeName = (id) => ROUTES.find((r) => r.id === id)?.name ?? id
+// 2) Routes and timetable live in ./timetable.js (real APU shuttle schedule).
+export { ROUTES, routeName } from './timetable'
 
 // Default settings (admin can change most of these live in the dashboard)
 export const DEFAULT_SETTINGS = {

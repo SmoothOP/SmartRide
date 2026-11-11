@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { ROUTES } from '../lib/config'
+import { routeName } from '../lib/config'
 import { useCollection, useNow, useSettings } from '../lib/hooks'
 import { rotateArrivalCode } from '../lib/api'
-import { upcomingBuses, waitingQueue, freeSeats, fmtTime, tsMs } from '../lib/rules'
-import { Logo, QRImage, StatusBadge } from '../components/ui'
+import { waitingQueue, freeSeats, fmtIn, tsMs } from '../lib/rules'
+import { Logo, QRImage } from '../components/ui'
 
 /** Shown on a screen/tablet at the shuttle waiting area. The QR rotates so a photo of it goes stale within seconds. */
 export default function Display() {
@@ -28,10 +28,11 @@ export default function Display() {
 
   const period = settings.qrRotateSec * 1000
   const left = Math.max(0, period - (now - issuedAt))
+  const next = buses.filter((b) => b.status !== 'departed').sort((a, b) => tsMs(a.departAt) - tsMs(b.departAt)).slice(0, 9)
   const url = code ? `${window.location.origin}/checkin?c=${code}` : ''
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-[#0c0c10] text-white">
       <div className="mx-auto grid max-w-6xl gap-8 px-6 py-8 lg:grid-cols-[auto_1fr]">
         <div className="flex flex-col items-center rounded-3xl bg-white p-8 text-slate-900">
           <Logo className="text-xl" />
@@ -40,7 +41,7 @@ export default function Display() {
           <div className="mt-5">{code ? <QRImage key={code} text={url} size={320} /> : <div className="h-80 w-80 animate-pulse rounded-xl bg-slate-100" />}</div>
           <div className="mt-5 w-full">
             <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full bg-brand-600 transition-[width] duration-200 ease-linear" style={{ width: `${(left / period) * 100}%` }} />
+              <div className="h-full bg-[#6c52e8] transition-[width] duration-200 ease-linear" style={{ width: `${(left / period) * 100}%` }} />
             </div>
             <p className="mt-2 text-center text-xs text-slate-500">New code in {Math.ceil(left / 1000)} s · photos of this code stop working</p>
           </div>
@@ -48,36 +49,22 @@ export default function Display() {
         </div>
 
         <div>
-          <h2 className="text-xl font-bold text-slate-200">Next departures</h2>
-          <div className="mt-4 space-y-5">
-            {ROUTES.map((r) => {
-              const list = upcomingBuses(buses, r.id).slice(0, 3)
-              const waiting = waitingQueue(queue, r.id).length
+          <h2 className="text-xl font-bold text-slate-200">Next departures from APU</h2>
+          <div className="mt-4 overflow-hidden rounded-3xl bg-[#1a1a1f]">
+            {next.length === 0 && <p className="p-5 text-sm text-slate-400">No buses scheduled</p>}
+            {next.map((b) => {
+              const waiting = waitingQueue(queue, b.routeId).length
+              const free = freeSeats(b)
               return (
-                <div key={r.id} className="rounded-2xl bg-slate-900 p-4">
-                  <div className="flex items-center">
-                    <h3 className="text-lg font-semibold">{r.name}</h3>
-                    <span className="ml-auto text-sm text-slate-400">{waiting} waiting</span>
+                <div key={b.id} className="grid grid-cols-[72px_1fr_auto] items-center gap-4 border-b border-white/5 px-5 py-3 last:border-0">
+                  <span className="text-2xl font-extrabold tabular-nums">{b.label}</span>
+                  <div>
+                    <p className="font-semibold">{routeName(b.routeId)}</p>
+                    <p className="text-xs text-slate-400">{fmtIn(b.departAt, now)}{waiting ? ` · ${waiting} waiting` : ''}</p>
                   </div>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                    {list.length === 0 && <p className="text-sm text-slate-500">No buses scheduled</p>}
-                    {list.map((b) => {
-                      const mins = Math.round((tsMs(b.departAt) - now) / 60000)
-                      return (
-                        <div key={b.id} className="rounded-xl bg-slate-800 p-3">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold">{b.label}</span>
-                            <StatusBadge status={b.status} />
-                          </div>
-                          <p className="mt-1 text-2xl font-extrabold tabular-nums">{fmtTime(b.departAt)}</p>
-                          <p className="text-xs text-slate-400">{mins > 0 ? `in ${mins} min` : 'boarding now'}</p>
-                          <p className={`mt-2 text-sm font-semibold ${freeSeats(b) === 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                            {freeSeats(b) === 0 ? 'Full' : `${freeSeats(b)} seats free`}
-                          </p>
-                        </div>
-                      )
-                    })}
-                  </div>
+                  <span className={`rounded-full px-3 py-1 text-sm font-semibold ${free === 0 ? 'bg-rose-500/15 text-rose-300' : 'bg-emerald-500/15 text-emerald-300'}`}>
+                    {free === 0 ? 'Full' : `${free} seats`}
+                  </span>
                 </div>
               )
             })}

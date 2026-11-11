@@ -3,12 +3,14 @@ import { useSearchParams } from 'react-router-dom'
 import { signInAnonymously, signOut } from 'firebase/auth'
 import { auth } from '../lib/firebase'
 import { ROUTES, routeName } from '../lib/config'
+import { nextDepartures } from '../lib/timetable'
+import Timetable from '../components/Timetable'
 import { useAuthUser, useCollection, useDocument, useNow, useSettings } from '../lib/hooks'
 import {
   ensureStudent, checkIn, leaveQueue, bookSeat, cancelBooking, submitAppeal, boardingQRText, currentArrivalCode,
 } from '../lib/api'
 import {
-  waitingQueue, positionOf, bookingWindow, canBook, estimate, upcomingBuses, freeSeats, isSuspended, fmtTime, tsMs,
+  waitingQueue, positionOf, bookingWindow, canBook, estimate, upcomingBuses, freeSeats, isSuspended, fmtTime, fmtIn, tsMs,
 } from '../lib/rules'
 import { TopBar, Badge, StatusBadge, QRImage, QRScanner, GeminiSlot, useToast, useAction } from '../components/ui'
 
@@ -22,8 +24,8 @@ export default function Student() {
       <TopBar title="Student" />
       <main className="mx-auto max-w-xl px-4 py-6">
         {user === undefined || (user && student === undefined) ? (
-          <p className="text-center text-slate-500">Loading…</p>
-        ) : !user || !student ? (
+          <p className="text-center text-muted">Loading…</p>
+        ) : !student ? (
           <SignIn user={user} notify={notify} />
         ) : (
           <StudentHome user={user} student={student} notify={notify} />
@@ -49,7 +51,7 @@ function SignIn({ user, notify }) {
     <form onSubmit={submit} className="card space-y-4 p-6">
       <div>
         <h1 className="text-2xl font-bold">Welcome to SmartRide</h1>
-        <p className="mt-1 text-sm text-slate-600">Sign in to join the shuttle queue. (Prototype: in production this would be APU single sign-on.)</p>
+        <p className="mt-1 text-sm text-fg2">Sign in to join the shuttle queue. (Prototype: in production this would be APU single sign-on.)</p>
       </div>
       <div>
         <label className="label" htmlFor="n">Full name</label>
@@ -71,15 +73,16 @@ function StudentHome({ user, student, notify }) {
   const settings = useSettings()
   const suspended = isSuspended(student)
   const active = entry && ['waiting', 'booked'].includes(entry.status)
+  const [tab, setTab] = useState('ride')
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-slate-500">Signed in as</p>
-          <p className="font-semibold">{student.name} <span className="font-normal text-slate-500">· {student.studentId}</span></p>
+          <p className="text-sm text-muted">Signed in as</p>
+          <p className="font-semibold">{student.name} <span className="font-normal text-muted">· {student.studentId}</span></p>
         </div>
-        <button className="text-xs text-slate-500 underline" onClick={() => signOut(auth)}>Switch user</button>
+        <button className="text-xs text-muted underline" onClick={() => signOut(auth)}>Switch user</button>
       </div>
 
       {suspended && (
@@ -93,8 +96,15 @@ function StudentHome({ user, student, notify }) {
         </div>
       )}
 
-      {entry === undefined ? null : entry?.status === 'booked' ? (
-        booking ? <BoardingPass booking={booking} notify={notify} /> : <p className="text-center text-slate-500">Loading your pass…</p>
+      <div className="flex gap-1 rounded-full bg-subtle p-1">
+        {[['ride', 'My ride'], ['timetable', 'Timetable']].map(([id, label]) => (
+          <button key={id} onClick={() => setTab(id)}
+            className={`flex-1 rounded-full px-3 py-2 text-sm font-semibold ${tab === id ? 'bg-brand-600 text-white' : 'text-fg2'}`}>{label}</button>
+        ))}
+      </div>
+
+      {tab === 'timetable' ? <Timetable /> : entry === undefined ? null : entry?.status === 'booked' ? (
+        booking ? <BoardingPass booking={booking} notify={notify} /> : <p className="text-center text-muted">Loading your pass…</p>
       ) : entry?.status === 'waiting' ? (
         <WaitingView entry={entry} uid={uid} settings={settings} notify={notify} />
       ) : (
@@ -103,7 +113,7 @@ function StudentHome({ user, student, notify }) {
             <div className="card p-5 text-center">
               <div className="text-4xl">🚌</div>
               <h2 className="mt-2 text-xl font-bold">You're on board. Have a good trip!</h2>
-              <p className="text-sm text-slate-600">Check in again next time you're at the waiting area.</p>
+              <p className="text-sm text-fg2">Check in again next time you're at the waiting area.</p>
             </div>
           )}
           {entry?.status === 'expired' && <NoShowNotice uid={uid} student={student} notify={notify} />}
@@ -117,7 +127,7 @@ function StudentHome({ user, student, notify }) {
         <p>Ask in plain language and get answers from live data, e.g.:</p>
         <ul className="mt-2 space-y-1">
           {['"How many people are ahead of me?"', '"Book me on the next shuttle to the LRT."', '"Can I cancel my reservation?"'].map((q) => (
-            <li key={q} className="rounded-lg bg-white/70 px-3 py-1.5 text-slate-700">{q}</li>
+            <li key={q} className="rounded-lg bg-surface/70 px-3 py-1.5 text-fg2">{q}</li>
           ))}
         </ul>
         <p className="mt-2 text-xs">Bookings requested through Gemini go through the same backend rules. The AI can't override fairness or capacity.</p>
@@ -125,7 +135,7 @@ function StudentHome({ user, student, notify }) {
       <GeminiSlot title="Shuttles that fit my timetable" connector="Google Calendar connector">
         <p>"My class finishes at 4 PM. Which shuttle can I catch?" Gemini reads your class schedule from Google Calendar, then recommends a bus using live seats and queue length.</p>
       </GeminiSlot>
-      {!active && <p className="text-center text-xs text-slate-400">Location check: {settings.bypassLocation ? 'bypassed (demo mode)' : `within ${settings.geofence.radiusM} m of the waiting area`}</p>}
+      {!active && <p className="text-center text-xs text-muted">Location check: {settings.bypassLocation ? 'bypassed (demo mode)' : `within ${settings.geofence.radiusM} m of the waiting area`}</p>}
     </div>
   )
 }
@@ -162,18 +172,22 @@ function CheckInPanel({ uid, settings, notify }) {
     <div className="card space-y-4 p-5">
       <div>
         <h2 className="text-lg font-bold">Check in at the waiting area</h2>
-        <p className="text-sm text-slate-600">Your queue place is based on when you check in here, so scan as soon as you arrive.</p>
+        <p className="text-sm text-fg2">Your queue place is based on when you check in here, so scan as soon as you arrive.</p>
       </div>
 
       <div>
         <span className="label">1 · Where are you going?</span>
-        <div className="grid gap-2 sm:grid-cols-3">
-          {ROUTES.map((r) => (
-            <button key={r.id} onClick={() => setRouteId(r.id)}
-              className={`rounded-xl border px-3 py-2.5 text-left text-sm font-medium ${routeId === r.id ? 'border-brand-600 bg-brand-50 text-brand-900 ring-2 ring-brand-100' : 'border-slate-200 hover:bg-slate-50'}`}>
-              {r.name}
-            </button>
-          ))}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {ROUTES.map((r) => {
+            const next = nextDepartures(r.id, Date.now(), 1)[0]
+            return (
+              <button key={r.id} onClick={() => setRouteId(r.id)}
+                className={`rounded-2xl border px-3 py-2 text-left ${routeId === r.id ? 'border-brand-600 bg-brand-50 ring-2 ring-brand-100' : 'border-line hover:bg-subtle'}`}>
+                <span className={`block text-sm font-semibold ${routeId === r.id ? 'text-brand-900' : ''}`}>{r.name}</span>
+                <span className="block text-xs text-muted">{next ? `next ${fmtTime(next.ms)}` : 'no service'}{r.fridayOnly ? ' · Fri only' : ''}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -193,7 +207,7 @@ function CheckInPanel({ uid, settings, notify }) {
           <div className="grid gap-2">
             <button className="btn-ghost" onClick={() => setScanning(true)}>📷 Open camera</button>
             {settings.bypassLocation && (
-              <button className="text-xs text-slate-500 underline" onClick={() => run(async () => {
+              <button className="text-xs text-muted underline" onClick={() => run(async () => {
                 const c = await currentArrivalCode()
                 if (!c) throw new Error('Open the Waiting-area display page first; it generates the QR.')
                 setCode(c)
@@ -206,7 +220,7 @@ function CheckInPanel({ uid, settings, notify }) {
       <button className="btn-primary w-full py-3" disabled={!code || busy} onClick={doCheckIn}>
         {busy ? 'Verifying…' : `Check in for ${routeName(routeId)}`}
       </button>
-      {!settings.bypassLocation && <p className="text-xs text-slate-500">We check your location once, at check-in only, to confirm you're at the waiting area. No tracking.</p>}
+      {!settings.bypassLocation && <p className="text-xs text-muted">We check your location once, at check-in only, to confirm you're at the waiting area. No tracking.</p>}
     </div>
   )
 }
@@ -226,31 +240,31 @@ function WaitingView({ entry, uid, settings, notify }) {
   return (
     <div className="space-y-4">
       <div className="card overflow-hidden">
-        <div className="bg-slate-900 p-5 text-white">
-          <p className="text-sm text-slate-300">Your place in line · {routeName(entry.routeId)}</p>
+        <div className="bg-gradient-to-br from-brand-600 to-brand-700 p-5 text-white">
+          <p className="text-sm text-white/75">Your place in line · {routeName(entry.routeId)}</p>
           <div className="mt-1 flex items-end gap-3">
             <span className="text-6xl font-extrabold tabular-nums">#{pos || '–'}</span>
-            <span className="pb-2 text-sm text-slate-300">{Math.max(0, pos - 1)} ahead of you · {waiting.length} waiting</span>
+            <span className="pb-2 text-sm text-white/75">{Math.max(0, pos - 1)} ahead of you · {waiting.length} waiting</span>
           </div>
-          <p className="mt-2 text-sm text-slate-300">Checked in at {fmtTime(entry.arrivedAt)} (verified)</p>
+          <p className="mt-2 text-sm text-white/75">Checked in at {fmtTime(entry.arrivedAt)} (verified)</p>
         </div>
-        <div className="grid grid-cols-2 divide-x divide-slate-200 text-center">
+        <div className="grid grid-cols-2 divide-x divide-line text-center">
           <div className="p-3">
-            <p className="text-xs text-slate-500">Estimated wait</p>
-            <p className="text-lg font-bold">{est?.waitMin != null ? `~${est.waitMin} min` : 'Over capacity'}</p>
+            <p className="text-xs text-muted">Estimated wait</p>
+            <p className="text-lg font-bold">{!est?.bus ? 'Over capacity' : fmtIn(est.bus.departAt, now) === 'now' ? 'Boarding now' : fmtIn(est.bus.departAt, now).replace('in ', '~')}</p>
           </div>
           <div className="p-3">
-            <p className="text-xs text-slate-500">Likely bus</p>
-            <p className="text-lg font-bold">{est?.bus?.label ?? 'Next schedule'}</p>
+            <p className="text-xs text-muted">Likely bus</p>
+            <p className="text-lg font-bold">{est?.bus ? fmtTime(est.bus.departAt) : 'Next schedule'}</p>
           </div>
         </div>
       </div>
 
       <div className="card p-5">
         <h3 className="font-semibold">Choose your bus</h3>
-        <p className="mb-3 text-xs text-slate-500">You can book one of the next {settings.bookingWindowBuses} buses with free seats once your place in line is covered by the free seats. Everyone ahead of you is always guaranteed a seat first.</p>
+        <p className="mb-3 text-xs text-muted">You can book one of the next {settings.bookingWindowBuses} buses with free seats once your place in line is covered by the free seats. Everyone ahead of you is always guaranteed a seat first.</p>
         <div className="space-y-2">
-          {upcoming.length === 0 && <p className="text-sm text-slate-500">No buses scheduled for this route yet.</p>}
+          {upcoming.length === 0 && <p className="text-sm text-muted">No buses scheduled for this route yet.</p>}
           {upcoming.map((bus) => {
             const w = window.find((x) => x.bus.id === bus.id)
             const ok = canBook(pos, w)
@@ -258,24 +272,24 @@ function WaitingView({ entry, uid, settings, notify }) {
             const mins = Math.round((tsMs(bus.departAt) - now) / 60000)
             const pct = Math.min(100, ((bus.booked ?? 0) / bus.capacity) * 100)
             return (
-              <div key={bus.id} className="rounded-xl border border-slate-200 p-3">
+              <div key={bus.id} className="rounded-xl border border-line p-3">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">{bus.label}</span>
+                  <span className="font-semibold">{fmtTime(bus.departAt)}</span>
                   <StatusBadge status={bus.status} />
-                  <span className="ml-auto text-sm text-slate-600">{fmtTime(bus.departAt)} · {mins > 0 ? `in ${mins} min` : 'now'}</span>
+                  <span className="ml-auto text-sm text-fg2">{fmtIn(bus.departAt, now)}</span>
                 </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-subtle">
                   <div className={`h-full rounded-full ${free === 0 ? 'bg-rose-500' : 'bg-brand-500'}`} style={{ width: `${pct}%` }} />
                 </div>
                 <div className="mt-2 flex items-center gap-2">
-                  <span className="text-sm text-slate-600">{free} of {bus.capacity} seats free</span>
+                  <span className="text-sm text-fg2">{free} of {bus.capacity} seats free</span>
                   <button className="btn-primary ml-auto px-3 py-1.5" disabled={!ok || busy}
-                    onClick={() => run(() => bookSeat({ uid, busId: bus.id }), `Booked on ${bus.label}. Your boarding pass is ready.`)}>
+                    onClick={() => run(() => bookSeat({ uid, busId: bus.id }), `Booked on the ${fmtTime(bus.departAt)} bus. Your boarding pass is ready.`)}>
                     Book
                   </button>
                 </div>
-                {!ok && free > 0 && w && <p className="mt-1 text-xs text-slate-500">Opens for you when {pos - w.cumFree} more {pos - w.cumFree === 1 ? 'person' : 'people'} ahead book or seats free up.</p>}
-                {free === 0 && <p className="mt-1 text-xs text-slate-500">Full. If someone cancels or doesn't board, the seat goes to the next person in line.</p>}
+                {!ok && free > 0 && w && <p className="mt-1 text-xs text-muted">Opens for you when {pos - w.cumFree} more {pos - w.cumFree === 1 ? 'person' : 'people'} ahead book or seats free up.</p>}
+                {free === 0 && <p className="mt-1 text-xs text-muted">Full. If someone cancels or doesn't board, the seat goes to the next person in line.</p>}
               </div>
             )
           })}
@@ -295,16 +309,16 @@ function BoardingPass({ booking, notify }) {
   return (
     <div className="card overflow-hidden">
       <div className="bg-brand-700 p-5 text-white">
-        <p className="text-sm text-brand-100">Boarding pass · {routeName(booking.routeId)}</p>
-        <p className="text-3xl font-extrabold">{booking.busLabel}</p>
-        <p className="text-sm text-brand-100">Departs {fmtTime(booking.departAt)} · {mins > 0 ? `in ${mins} min` : 'boarding now'}</p>
+        <p className="text-sm text-white/80">Boarding pass · APU →</p>
+        <p className="text-3xl font-extrabold">{routeName(booking.routeId)}</p>
+        <p className="text-sm text-white/80">Departs {fmtTime(booking.departAt)} · {fmtIn(booking.departAt, now) === 'now' ? 'boarding now' : fmtIn(booking.departAt, now)}</p>
       </div>
       <div className="flex flex-col items-center p-5">
-        <QRImage text={boardingQRText(booking)} size={240} />
+        <div className="rounded-2xl bg-white p-3"><QRImage text={boardingQRText(booking)} size={240} /></div>
         <p className="mt-3 font-semibold">{booking.name}</p>
-        <p className="text-sm text-slate-500">{booking.studentId}</p>
+        <p className="text-sm text-muted">{booking.studentId}</p>
         {bus?.status === 'cutoff' && <Badge tone="amber">Last call: board now</Badge>}
-        <p className="mt-3 text-center text-xs text-slate-500">Show this at the bus door. It works once. If you don't board before the boarding cutoff, the seat is released and it counts as a no-show.</p>
+        <p className="mt-3 text-center text-xs text-muted">Show this at the bus door. It works once. If you don't board before the boarding cutoff, the seat is released and it counts as a no-show.</p>
         <button className="btn-danger mt-4 w-full" disabled={busy}
           onClick={() => run(() => cancelBooking(booking.id), 'Booking cancelled. You kept your place in the queue.')}>
           Cancel booking (no penalty)
@@ -332,7 +346,7 @@ function AppealForm({ uid, student, notify }) {
   const [busy, run] = useAction(notify)
   const [sent, setSent] = useState(false)
   useEffect(() => setSent(false), [student.noShows])
-  if (sent) return <p className="rounded-xl bg-slate-100 p-3 text-sm text-slate-700">Appeal submitted. The transport office will review it.</p>
+  if (sent) return <p className="rounded-xl bg-subtle p-3 text-sm text-fg2">Appeal submitted. The transport office will review it.</p>
   if (!open) return <button className="btn-ghost w-full" onClick={() => setOpen(true)}>Appeal a no-show</button>
   return (
     <div className="card space-y-3 p-5">

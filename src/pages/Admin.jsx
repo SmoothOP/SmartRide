@@ -5,7 +5,7 @@ import {
   boardingCutoff, departBus, addBus, removeBus, resetDemo, simulateArrivals, simAutoBook, simCancelOne, simBoard,
   generateHistory, saveSettings, getPosition, resolveAppeal,
 } from '../lib/api'
-import { upcomingBuses, waitingQueue, freeSeats, fmtTime, tsMs, isSuspended } from '../lib/rules'
+import { upcomingBuses, waitingQueue, freeSeats, fmtTime, fmtIn, tsMs, isSuspended } from '../lib/rules'
 import { TopBar, Badge, StatusBadge, GeminiSlot, useToast, useAction } from '../components/ui'
 
 const TABS = [
@@ -22,10 +22,10 @@ export default function Admin() {
     <div className="min-h-screen pb-16">
       <TopBar title="Transport admin" />
       <main className="mx-auto max-w-6xl px-4 py-6">
-        <div className="mb-5 flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1">
+        <div className="mb-5 flex flex-wrap gap-1 rounded-xl bg-subtle p-1">
           {TABS.map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
-              className={`rounded-lg px-3 py-2 text-sm font-medium ${tab === id ? 'bg-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
+              className={`rounded-lg px-3 py-2 text-sm font-medium ${tab === id ? 'bg-surface shadow-sm' : 'text-fg2 hover:text-fg'}`}>
               {label}
             </button>
           ))}
@@ -73,23 +73,23 @@ function Operations({ busy, run }) {
       <div className="flex flex-wrap gap-2">
         {ROUTES.map((r) => (
           <button key={r.id} onClick={() => setRouteId(r.id)}
-            className={`rounded-full px-3 py-1.5 text-sm font-medium ${routeId === r.id ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200'}`}>
-            {r.name} <span className="opacity-60">· {waitingQueue(queue, r.id).length} waiting</span>
+            className={`rounded-full px-3 py-1.5 text-sm font-medium ${routeId === r.id ? 'bg-fg text-canvas' : 'bg-surface text-fg2 ring-1 ring-line'}`}>
+            {r.name}{waitingQueue(queue, r.id).length > 0 && <span className="opacity-70"> · {waitingQueue(queue, r.id).length}</span>}
           </button>
         ))}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
         <div className="space-y-3">
-          {list.length === 0 && <p className="card p-5 text-sm text-slate-500">No upcoming buses. Add one below, or seed demo buses in Demo &amp; settings.</p>}
+          {list.length === 0 && <p className="card p-5 text-sm text-muted">No upcoming buses. Add one below, or seed demo buses in Demo &amp; settings.</p>}
           {list.map((b) => {
             const mins = Math.round((tsMs(b.departAt) - now) / 60000)
             return (
               <div key={b.id} className="card p-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-lg font-bold">{b.label}</h3>
+                  <h3 className="text-lg font-bold">{fmtTime(b.departAt)}</h3>
                   <StatusBadge status={b.status} />
-                  <span className="text-sm text-slate-500">departs {fmtTime(b.departAt)} ({mins > 0 ? `in ${mins} min` : 'due now'})</span>
+                  <span className="text-sm text-muted">APU → {routeName(b.routeId)} · departs {fmtIn(b.departAt, now)}</span>
                 </div>
                 <CapacityBar bus={b} />
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -99,8 +99,8 @@ function Operations({ busy, run }) {
                       ⏱ Boarding cutoff
                     </button>
                   )}
-                  <button className="btn-ghost px-3 py-1.5" disabled={busy} onClick={() => run(() => departBus(b.id), `${b.label} departed.`)}>🚌 Depart</button>
-                  <span className="mx-1 w-px bg-slate-200" />
+                  <button className="btn-ghost px-3 py-1.5" disabled={busy} onClick={() => run(() => departBus(b.id), `The ${b.label} bus departed.`)}>🚌 Depart</button>
+                  <span className="mx-1 w-px bg-line" />
                   <button className="btn-ghost px-3 py-1.5 text-xs" disabled={busy}
                     onClick={() => run(() => simCancelOne(b.id), (n) => `${n} cancelled. The seat is open for the next in line.`)}>Sim: a passenger cancels</button>
                   <button className="btn-ghost px-3 py-1.5 text-xs" disabled={busy}
@@ -110,7 +110,7 @@ function Operations({ busy, run }) {
               </div>
             )
           })}
-          {departed.length > 0 && <p className="text-xs text-slate-500">Departed today: {departed.map((b) => `${b.label} (${b.boarded}/${b.capacity})`).join(', ')}</p>}
+          {departed.length > 0 && <p className="text-xs text-muted">Departed today: {departed.map((b) => `${b.label} (${b.boarded}/${b.capacity})`).join(', ')}</p>}
           <AddBus routeId={routeId} busy={busy} run={run} />
         </div>
 
@@ -122,15 +122,15 @@ function Operations({ busy, run }) {
               Sim: next in line books
             </button>
           </div>
-          <p className="text-xs text-slate-500">Ordered by verified arrival time (FIFO)</p>
+          <p className="text-xs text-muted">Ordered by verified arrival time (FIFO)</p>
           <ol className="mt-3 max-h-[480px] space-y-1 overflow-auto">
-            {waiting.length === 0 && <p className="text-sm text-slate-500">Nobody waiting.</p>}
+            {waiting.length === 0 && <p className="text-sm text-muted">Nobody waiting.</p>}
             {waiting.map((q, i) => (
               <li key={q.uid} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm ${q.sim ? '' : 'bg-brand-50'}`}>
-                <span className="w-7 text-right font-bold tabular-nums text-slate-400">{i + 1}</span>
+                <span className="w-7 text-right font-bold tabular-nums text-muted">{i + 1}</span>
                 <span className="font-medium">{q.name}</span>
                 {!q.sim && <Badge tone="teal">live</Badge>}
-                <span className="ml-auto text-xs tabular-nums text-slate-500">{fmtTime(q.arrivedAt)}</span>
+                <span className="ml-auto text-xs tabular-nums text-muted">{fmtTime(q.arrivedAt)}</span>
               </li>
             ))}
           </ol>
@@ -143,9 +143,9 @@ function Operations({ busy, run }) {
 function Stat({ label, value, sub }) {
   return (
     <div className="card p-4">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
+      <p className="text-xs font-medium text-muted">{label}</p>
       <p className="mt-1 text-3xl font-extrabold tabular-nums">{value}</p>
-      {sub && <p className="text-xs text-slate-500">{sub}</p>}
+      {sub && <p className="text-xs text-muted">{sub}</p>}
     </div>
   )
 }
@@ -156,11 +156,11 @@ function CapacityBar({ bus }) {
   const booked = Math.max(0, (bus.booked ?? 0) - boarded)
   return (
     <div className="mt-3">
-      <div className="flex h-3 gap-0.5 overflow-hidden rounded-full bg-slate-100">
+      <div className="flex h-3 gap-0.5 overflow-hidden rounded-full bg-subtle">
         <div className="h-full rounded-l-full bg-brand-700" style={{ width: `${(boarded / cap) * 100}%` }} title={`${boarded} boarded`} />
         <div className="h-full bg-brand-500/40" style={{ width: `${(booked / cap) * 100}%` }} title={`${booked} booked, not yet boarded`} />
       </div>
-      <div className="mt-1.5 flex flex-wrap gap-x-4 text-xs text-slate-600">
+      <div className="mt-1.5 flex flex-wrap gap-x-4 text-xs text-fg2">
         <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-brand-700" />{boarded} boarded</span>
         <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-brand-500/40" />{booked} booked, not boarded</span>
         <span>{freeSeats(bus)} free of {bus.capacity}</span>
@@ -184,7 +184,7 @@ function AddBus({ routeId, busy, run }) {
         <button className="btn-primary" disabled={busy || !label}
           onClick={() => run(() => addBus({ routeId, label, capacity, departAt: Date.now() + inMin * 60000 }), 'Bus added.').then(() => setLabel(''))}>Add</button>
       </div>
-      <p className="mt-1 text-xs text-slate-500">Label · departs in (minutes) · capacity</p>
+      <p className="mt-1 text-xs text-muted">Label · departs in (minutes) · capacity</p>
     </details>
   )
 }
@@ -199,28 +199,28 @@ function Records() {
   const counts = bookings.reduce((m, b) => ({ ...m, [b.status]: (m[b.status] ?? 0) + 1 }), {})
   return (
     <div className="card overflow-hidden">
-      <div className="flex flex-wrap gap-2 border-b border-slate-200 p-3">
+      <div className="flex flex-wrap gap-2 border-b border-line p-3">
         {['all', 'confirmed', 'boarded', 'no_show', 'cancelled'].map((s) => (
-          <button key={s} onClick={() => setFilter(s)} className={`rounded-full px-3 py-1 text-xs font-medium ${filter === s ? 'bg-slate-900 text-white' : 'bg-slate-100'}`}>
+          <button key={s} onClick={() => setFilter(s)} className={`rounded-full px-3 py-1 text-xs font-medium ${filter === s ? 'bg-fg text-canvas' : 'bg-subtle'}`}>
             {s === 'all' ? `All (${bookings.length})` : `${s.replace('_', '-')} (${counts[s] ?? 0})`}
           </button>
         ))}
       </div>
       <div className="max-h-[600px] overflow-auto">
         <table className="w-full text-left text-sm">
-          <thead className="sticky top-0 bg-slate-50 text-xs uppercase text-slate-500">
+          <thead className="sticky top-0 bg-subtle text-xs uppercase text-muted">
             <tr><th className="p-3">Student</th><th className="p-3">ID</th><th className="p-3">Bus</th><th className="p-3">Status</th><th className="p-3">Booked</th><th className="p-3">Boarded</th></tr>
           </thead>
           <tbody>
-            {rows.length === 0 && <tr><td colSpan={6} className="p-5 text-center text-slate-500">No records yet.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={6} className="p-5 text-center text-muted">No records yet.</td></tr>}
             {rows.map((b) => (
-              <tr key={b.id} className="border-t border-slate-100">
+              <tr key={b.id} className="border-t border-line">
                 <td className="p-3 font-medium">{b.name} {!b.sim && <Badge tone="teal">live</Badge>}</td>
-                <td className="p-3 tabular-nums text-slate-600">{b.studentId}</td>
-                <td className="p-3">{b.busLabel}</td>
+                <td className="p-3 tabular-nums text-fg2">{b.studentId}</td>
+                <td className="p-3">{routeName(b.routeId)} · {b.busLabel}</td>
                 <td className="p-3"><StatusBadge status={b.status} /></td>
-                <td className="p-3 tabular-nums text-slate-600">{b.createdAt ? fmtTime(b.createdAt) : '–'}</td>
-                <td className="p-3 tabular-nums text-slate-600">{b.boardedAt ? fmtTime(b.boardedAt) : '–'}</td>
+                <td className="p-3 tabular-nums text-fg2">{b.createdAt ? fmtTime(b.createdAt) : '–'}</td>
+                <td className="p-3 tabular-nums text-fg2">{b.boardedAt ? fmtTime(b.boardedAt) : '–'}</td>
               </tr>
             ))}
           </tbody>
@@ -241,13 +241,13 @@ function NoShows({ busy, run }) {
     <div className="grid gap-5 lg:grid-cols-2">
       <div className="card p-4">
         <h3 className="font-semibold">Booking reliability</h3>
-        <p className="text-xs text-slate-500">Policy: {settings.noShowLimit} no-shows → booking suspended for {settings.suspendDays} days. Cancelling before the cutoff never counts.</p>
-        <ul className="mt-3 divide-y divide-slate-100">
-          {flagged.length === 0 && <p className="py-3 text-sm text-slate-500">No no-shows recorded.</p>}
+        <p className="text-xs text-muted">Policy: {settings.noShowLimit} no-shows → booking suspended for {settings.suspendDays} days. Cancelling before the cutoff never counts.</p>
+        <ul className="mt-3 divide-y divide-line">
+          {flagged.length === 0 && <p className="py-3 text-sm text-muted">No no-shows recorded.</p>}
           {flagged.map((s) => (
             <li key={s.id} className="flex items-center gap-2 py-2 text-sm">
               <span className="font-medium">{s.name}</span>
-              <span className="text-slate-500">{s.studentId}</span>
+              <span className="text-muted">{s.studentId}</span>
               <span className="ml-auto tabular-nums">{s.noShows} no-show{s.noShows > 1 ? 's' : ''}</span>
               {isSuspended(s) && <Badge tone="red">Suspended</Badge>}
             </li>
@@ -258,13 +258,13 @@ function NoShows({ busy, run }) {
         <div className="card p-4">
           <h3 className="font-semibold">Appeals <Badge tone="amber">{pending.length} pending</Badge></h3>
           <ul className="mt-3 space-y-2">
-            {appeals.length === 0 && <p className="text-sm text-slate-500">No appeals yet.</p>}
+            {appeals.length === 0 && <p className="text-sm text-muted">No appeals yet.</p>}
             {appeals.sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt)).map((a) => (
-              <li key={a.id} className="rounded-xl border border-slate-200 p-3 text-sm">
+              <li key={a.id} className="rounded-xl border border-line p-3 text-sm">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{a.name}</span><Badge>{a.reason}</Badge><StatusBadge status={a.status} />
                 </div>
-                <p className="mt-1 text-slate-600">{a.details}</p>
+                <p className="mt-1 text-fg2">{a.details}</p>
                 {a.status === 'pending' && (
                   <div className="mt-2 flex gap-2">
                     <button className="btn-primary px-3 py-1.5" disabled={busy} onClick={() => run(() => resolveAppeal(a, true), 'Approved: one no-show removed.')}>Approve</button>
@@ -288,11 +288,11 @@ function Analytics({ busy, run }) {
   const [trips, loading] = useCollection('tripStats')
   const a = useMemo(() => analyse(trips), [trips])
 
-  if (loading) return <p className="text-slate-500">Loading…</p>
+  if (loading) return <p className="text-muted">Loading…</p>
   if (!trips.length) {
     return (
       <div className="card p-6 text-center">
-        <p className="text-slate-600">No trip history yet.</p>
+        <p className="text-fg2">No trip history yet.</p>
         <button className="btn-primary mt-3" disabled={busy} onClick={() => run(generateHistory, (n) => `Generated ${n} simulated trips (4 weeks).`)}>
           Generate 4 weeks of simulated history
         </button>
@@ -311,28 +311,28 @@ function Analytics({ busy, run }) {
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="card p-4">
           <h3 className="font-semibold">Average demand by departure hour</h3>
-          <p className="text-xs text-slate-500">Students wanting each departure (all routes, weekdays). Dashed line = seats per departure.</p>
+          <p className="text-xs text-muted">Average students wanting a departure in each hour (all routes, weekdays). Dashed line = seats per bus.</p>
           <BarChart data={a.byHour} capacity={a.avgCap} format={(v) => v.toFixed(0)} />
         </div>
         <div className="card p-4">
           <h3 className="font-semibold">No-show rate by route</h3>
-          <p className="text-xs text-slate-500">Share of confirmed bookings that never boarded</p>
-          <BarChart data={a.noShowByRoute} format={(v) => `${v.toFixed(1)}%`} />
+          <p className="text-xs text-muted">Share of confirmed bookings that never boarded</p>
+          <HBarList data={[...a.noShowByRoute].sort((x, y) => y.value - x.value)} format={(v) => `${v.toFixed(1)}%`} />
         </div>
       </div>
 
       <div className="card p-4">
         <h3 className="font-semibold">Rule-based findings</h3>
-        <p className="text-xs text-slate-500">Computed directly from the data. In the final round Gemini explains these and answers follow-up questions.</p>
+        <p className="text-xs text-muted">Computed directly from the data. In the final round Gemini explains these and answers follow-up questions.</p>
         <ul className="mt-3 space-y-2 text-sm">
-          {a.findings.map((f) => <li key={f} className="rounded-lg bg-slate-50 px-3 py-2">• {f}</li>)}
+          {a.findings.map((f) => <li key={f} className="rounded-lg bg-subtle px-3 py-2">• {f}</li>)}
         </ul>
       </div>
 
       <GeminiSlot title="Ask about transport operations" connector="Agent grounded on SmartRide trip data (BigQuery / Google Sheets connector)">
         <ul className="space-y-1">
           {['"Which route has the longest waiting times?"', '"What are our peak hours this month?"', '"Which shuttles have the highest no-show rates?"', '"Where would an extra bus help most?"'].map((q) => (
-            <li key={q} className="rounded-lg bg-white/70 px-3 py-1.5 text-slate-700">{q}</li>
+            <li key={q} className="rounded-lg bg-surface/70 px-3 py-1.5 text-fg2">{q}</li>
           ))}
         </ul>
         <p className="mt-2 text-xs">A weekly summary is emailed to the transport office automatically (Gmail).</p>
@@ -364,8 +364,8 @@ function analyse(trips) {
   // Worst route+hour slot for unmet demand
   const slots = {}
   weekday.forEach((t) => {
-    const k = `${t.routeId}|${t.hour}`
-    slots[k] = slots[k] ?? { routeId: t.routeId, hour: t.hour, overflow: 0, n: 0, wait: 0 }
+    const k = `${t.routeId}|${t.time ?? t.hour}`
+    slots[k] = slots[k] ?? { routeId: t.routeId, time: t.time ?? `${String(t.hour).padStart(2, '0')}:00`, overflow: 0, n: 0, wait: 0 }
     slots[k].overflow += t.overflow; slots[k].n++; slots[k].wait += t.avgWaitMin
   })
   const ranked = Object.values(slots).sort((x, y) => y.overflow / y.n - x.overflow / x.n)
@@ -379,7 +379,7 @@ function analyse(trips) {
 
   const findings = [
     `Peak demand is at ${peak.label}, averaging ${peak.value.toFixed(0)} students per departure.`,
-    `${routeName(worst.routeId)} at ${String(worst.hour).padStart(2, '0')}:00 leaves about ${(worst.overflow / worst.n).toFixed(0)} students behind per weekday departure, with an average wait of ${(worst.wait / worst.n).toFixed(0)} min. It's the strongest case for an extra bus.`,
+    `The ${worst.time} bus to ${routeName(worst.routeId)} leaves about ${(worst.overflow / worst.n).toFixed(0)} students behind per weekday departure, with an average wait of ${(worst.wait / worst.n).toFixed(0)} min. It's the strongest case for an extra bus.`,
     `${worstNoShow.label} has the highest no-show rate (${worstNoShow.value.toFixed(1)}%). Across all routes, releasing no-show seats at the boarding cutoff recovers ${noShows} seats over 4 weeks.`,
     `Longest average wait: ${waitByRoute[0].name} (${waitByRoute[0].wait.toFixed(0)} min).`,
   ]
@@ -396,16 +396,31 @@ function analyse(trips) {
   }
 }
 
+function HBarList({ data, format }) {
+  const max = Math.max(...data.map((d) => d.value)) || 1
+  return (
+    <ul className="mt-4 space-y-1.5">
+      {data.map((d) => (
+        <li key={d.label} className="grid grid-cols-[110px_1fr_48px] items-center gap-2 text-xs" title={`${d.label}: ${format(d.value)}`}>
+          <span className="truncate text-fg2">{d.label}</span>
+          <span className="h-2.5 rounded-r bg-subtle"><span className="block h-full rounded-r bg-brand-500" style={{ width: `${(d.value / max) * 100}%` }} /></span>
+          <span className="text-right tabular-nums text-fg2">{format(d.value)}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 /** Minimal single-series bar chart: one hue, thin bars, hover tooltips, baseline-anchored. */
 function BarChart({ data, capacity, format = (v) => v }) {
   const max = Math.max(...data.map((d) => d.value), capacity ?? 0) * 1.1 || 1
   const [hover, setHover] = useState(null)
   return (
     <div className="mt-4">
-      <div className="relative flex h-48 items-end gap-1 border-b border-slate-300">
+      <div className="relative flex h-48 items-end gap-1 border-b border-line">
         {capacity && (
-          <div className="pointer-events-none absolute inset-x-0 border-t-2 border-dashed border-slate-400" style={{ bottom: `${(capacity / max) * 100}%` }}>
-            <span className="absolute -top-5 right-0 text-[10px] text-slate-500">{capacity.toFixed(0)} seats</span>
+          <div className="pointer-events-none absolute inset-x-0 border-t-2 border-dashed border-muted" style={{ bottom: `${(capacity / max) * 100}%` }}>
+            <span className="absolute -top-5 right-0 text-[10px] text-muted">{capacity.toFixed(0)} seats</span>
           </div>
         )}
         {data.map((d, i) => (
@@ -421,7 +436,7 @@ function BarChart({ data, capacity, format = (v) => v }) {
         ))}
       </div>
       <div className="mt-1 flex gap-1">
-        {data.map((d) => <span key={d.label} className="flex-1 truncate text-center text-[10px] text-slate-500">{d.label}</span>)}
+        {data.map((d) => <span key={d.label} className="flex-1 truncate text-center text-[10px] text-muted">{d.label}</span>)}
       </div>
     </div>
   )
@@ -433,11 +448,11 @@ function Demo({ busy, run }) {
   const [n, setN] = useState(34)
   const [routeId, setRouteId] = useState('lrt')
   const steps = [
-    ['Reset & seed buses', 'Clears queues and bookings, then schedules fresh buses (LRT-1 has 30 seats).', () => run(() => resetDemo(), 'Demo reset. Fresh buses scheduled.')],
+    ['Reset & seed buses', 'Clears queues and bookings, then schedules the next 3 real departures on every route (30 seats each).', () => run(() => resetDemo(), 'Demo reset. Fresh buses scheduled.')],
     [`${n} students arrive`, `Simulated students check in at the waiting area for ${routeName(routeId)}, 20 s apart.`, () => run(() => simulateArrivals(routeId, Number(n)), `${n} students joined the queue.`)],
-    ['They book in queue order', 'The first 30 fill the next bus. Everyone else keeps waiting in arrival order.', () => run(() => simAutoBook(routeId, { firstBusOnly: true }), (k) => `${k} bookings made in FIFO order.`)],
+    ['They book in queue order', 'The first 30 fill the next departure. Everyone else keeps waiting in arrival order.', () => run(() => simAutoBook(routeId, { firstBusOnly: true }), (k) => `${k} bookings made in FIFO order.`)],
     ['You check in', 'Open the Student app on your phone, scan the Waiting-area QR and join. You land behind everyone who arrived earlier.', null],
-    ['Cancellation → seat reallocated', 'Live operations → LRT-1 → "Sim: a passenger cancels", then "Sim: next in line books". The seat goes to the next person in line, never to someone who arrived later.', null],
+    ['Cancellation → seat reallocated', 'Live operations → next LRT bus → "Sim: a passenger cancels", then "Sim: next in line books". The seat goes to the next person in line, never to someone who arrived later.', null],
     ['Boarding', 'Scan your boarding pass on the Scanner page, then "Sim: board (3 no-shows)" for everyone else.', null],
     ['Boarding cutoff', '"⏱ Boarding cutoff" expires the 3 unclaimed reservations, records the no-shows and releases the seats to the queue.', null],
     ['Insights', 'Analytics tab: demand peaks, no-show rates, and where an extra bus would help most.', null],
@@ -458,11 +473,11 @@ function Demo({ busy, run }) {
         </div>
         <ol className="mt-4 space-y-2">
           {steps.map(([title, text, action], i) => (
-            <li key={title} className="flex gap-3 rounded-xl border border-slate-200 p-3">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">{i + 1}</span>
+            <li key={title} className="flex gap-3 rounded-xl border border-line p-3">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">{i + 1}</span>
               <div className="flex-1">
                 <p className="font-semibold">{title}</p>
-                <p className="text-sm text-slate-600">{text}</p>
+                <p className="text-sm text-fg2">{text}</p>
               </div>
               {action && <button className="btn-primary h-fit px-3 py-1.5" disabled={busy} onClick={action}>Run</button>}
             </li>
@@ -477,7 +492,7 @@ function Demo({ busy, run }) {
             onChange={(v) => run(() => saveSettings({ bypassLocation: v }))} />
           <div className="text-sm">
             <p className="label">Waiting-area geofence</p>
-            <p className="text-slate-600 tabular-nums">{settings.geofence.lat.toFixed(5)}, {settings.geofence.lng.toFixed(5)} · {settings.geofence.radiusM} m</p>
+            <p className="text-fg2 tabular-nums">{settings.geofence.lat.toFixed(5)}, {settings.geofence.lng.toFixed(5)} · {settings.geofence.radiusM} m</p>
             <button className="btn-ghost mt-2 w-full" disabled={busy}
               onClick={() => run(async () => {
                 const p = await getPosition()
@@ -502,8 +517,8 @@ function Toggle({ label, checked, onChange }) {
   return (
     <label className="flex cursor-pointer items-center justify-between gap-3 text-sm">
       <span>{label}</span>
-      <button type="button" onClick={() => onChange(!checked)} className={`relative h-6 w-11 rounded-full transition ${checked ? 'bg-brand-600' : 'bg-slate-300'}`}>
-        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${checked ? 'left-5.5' : 'left-0.5'}`} />
+      <button type="button" onClick={() => onChange(!checked)} className={`relative h-6 w-11 rounded-full transition ${checked ? 'bg-brand-600' : 'bg-line'}`}>
+        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-surface shadow transition ${checked ? 'left-5.5' : 'left-0.5'}`} />
       </button>
     </label>
   )

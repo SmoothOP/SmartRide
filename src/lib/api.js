@@ -3,7 +3,8 @@ import {
   query, where, serverTimestamp, increment, Timestamp, deleteDoc,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import { DEFAULT_SETTINGS, ROUTES } from './config'
+import { DEFAULT_SETTINGS } from './config'
+import { ROUTES, nextDepartures, timesFrom, runsOn, atTime } from './timetable'
 import {
   waitingQueue, positionOf, bookingWindow, canBook, isSuspended, distanceM, randomToken, tsMs, freeSeats,
 } from './rules'
@@ -162,7 +163,7 @@ export async function boardByQR(text, { busId } = {}) {
     const b = await tx.get(ref('bookings', parsed.bookingId))
     if (!b.exists() || b.data().token !== parsed.token) throw new Error('Invalid boarding pass.')
     const bk = b.data()
-    if (busId && bk.busId !== busId) throw new Error(`Wrong bus: this pass is for ${bk.busLabel}.`)
+    if (busId && bk.busId !== busId) throw new Error(`Wrong bus: this pass is for the ${bk.busLabel} bus.`)
     if (bk.status === 'boarded') throw new Error(`${bk.name} has already boarded. Passes can't be reused.`)
     if (bk.status === 'no_show') throw new Error('This reservation expired at the boarding cutoff.')
     if (bk.status !== 'confirmed') throw new Error('This booking was cancelled.')
@@ -238,18 +239,15 @@ async function deleteAll(name, filter = () => true) {
   }
 }
 
-export async function seedBuses() {
-  const now = Date.now()
-  const min = 60000
-  const plan = [
-    ['lrt', 'LRT-1', 10, 30], ['lrt', 'LRT-2', 30, 30], ['lrt', 'LRT-3', 50, 30],
-    ['res', 'RES-1', 15, 30], ['res', 'RES-2', 45, 30],
-    ['mall', 'MALL-1', 20, 20], ['mall', 'MALL-2', 60, 20],
-  ]
+/** Schedules the next 3 real departures from APU on every route (starting at least 8 minutes from now). */
+export async function seedBuses({ capacity = 30 } = {}) {
+  const from = Date.now() + 8 * 60000
   const batch = writeBatch(db)
-  plan.forEach(([routeId, label, inMin, capacity]) => {
-    batch.set(doc(collection(db, 'buses')), {
-      routeId, label, departAt: now + inMin * min, capacity, booked: 0, boarded: 0, releasedSeats: 0, status: 'scheduled',
+  ROUTES.forEach((r) => {
+    nextDepartures(r.id, from, 3).forEach(({ time, ms }) => {
+      batch.set(doc(collection(db, 'buses')), {
+        routeId: r.id, label: time, departAt: ms, capacity, booked: 0, boarded: 0, releasedSeats: 0, status: 'scheduled',
+      })
     })
   })
   await batch.commit()
@@ -361,32 +359,40 @@ export async function simBoard(busId, noShows = 3) {
   return boarding.length
 }
 
-/** Four weeks of synthetic trip history so the analytics have something to analyse. */
+/** Four weeks of synthetic trip history, one row per real timetabled departure from APU. */
 export async function generateHistory() {
   await deleteAll('tripStats')
   let seed = 42
   const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
-  const routeWeight = { lrt: 1.0, res: 0.65, mall: 0.35 }
-  const hourShape = { 8: 0.9, 9: 1.0, 10: 0.5, 11: 0.45, 12: 0.8, 13: 0.75, 14: 0.45, 15: 0.55, 16: 0.85, 17: 1.0, 18: 0.95, 19: 0.5 }
+  // Relative popularity per destination (simulated; replace with real counts once data exists)
+  const routeWeight = {
+    lrt: 1.0, fortune: 0.85, cog: 0.75, kingston: 0.6, parkhill: 0.55, mvertica: 0.55, bloomsvale: 0.5,
+    harmony: 0.5, kuchai: 0.45, maple: 0.45, divo: 0.45, bayu: 0.4, mosque: 0.6,
+  }
+  // Evening rush after classes; quieter late morning
+  const hourShape = (h) => ({ 10: 0.45, 11: 0.55, 12: 0.75, 13: 0.8, 14: 0.6, 15: 0.75, 16: 0.95, 17: 1.0, 18: 0.9, 19: 0.6, 20: 0.4, 21: 0.35 }[h] ?? 0.5)
   const rows = []
   const today = new Date(); today.setHours(0, 0, 0, 0)
   for (let d = 28; d >= 1; d--) {
     const day = new Date(today.getTime() - d * 86400000)
     const dow = day.getDay()
-    if (dow === 0) continue // no Sunday service
+    if (dow === 0) continue // assume no Sunday classes
     const dayFactor = dow === 6 ? 0.35 : dow === 5 ? 0.85 : 1
     for (const r of ROUTES) {
-      for (const [h, shape] of Object.entries(hourShape)) {
-        const capacity = r.id === 'mall' ? 20 : 30
-        const demand = Math.round(capacity * 1.35 * shape * routeWeight[r.id] * dayFactor * (0.8 + rand() * 0.4))
+      if (!runsOn(r, day)) continue
+      const times = timesFrom(r.id)
+      // Fewer departures → each bus carries more of the route's demand
+      const spread = Math.min(1.6, 1 + 8 / Math.max(4, times.length * 2))
+      for (const t of times) {
+        const hour = Number(t.slice(0, 2))
+        const capacity = 30
+        const demand = Math.round(capacity * 1.05 * hourShape(hour) * routeWeight[r.id] * spread * dayFactor * (0.75 + rand() * 0.5))
         const booked = Math.min(capacity, demand)
-        const noShowRate = 0.04 + rand() * 0.1 + (Number(h) >= 17 ? 0.03 : 0)
-        const noShows = Math.round(booked * noShowRate)
+        const noShows = Math.round(booked * (0.04 + rand() * 0.1 + (hour >= 17 ? 0.03 : 0)))
         const overflow = Math.max(0, demand - capacity)
         rows.push({
-          day: day.toISOString().slice(0, 10), dow, hour: Number(h), routeId: r.id, capacity, demand, booked,
-          boarded: booked - noShows, noShows, overflow,
-          avgWaitMin: Math.round(4 + (overflow / capacity) * 25 + rand() * 4),
+          day: day.toISOString().slice(0, 10), dow, hour, time: t, departAt: atTime(day, t), routeId: r.id, capacity, demand, booked,
+          boarded: booked - noShows, noShows, overflow, avgWaitMin: Math.round(3 + (overflow / capacity) * 25 + rand() * 4),
         })
       }
     }

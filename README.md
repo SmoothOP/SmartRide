@@ -30,6 +30,12 @@ Marked in the app with **✦ Gemini Enterprise · final round**:
 3. **No-show appeal workflow agent:** categorises appeals, logs them, and routes them to the transport office (Gmail / Google Chat) with a suggested decision. A human approves.
 4. **Admin analytics agent:** grounded on trip data (Firestore → BigQuery / Google Sheets) for peak hours, no-show rates and where extra buses help. Sends a weekly summary.
 
+### Real APU data
+Routes and departure times come from the APSpace Bus Shuttle Services timetable (`src/lib/timetable.js`): 13 destinations from APU, plus pickups to APU. Demo buses are seeded from the **next real departures**. The student app includes the full timetable.
+
+### Where it would live
+SmartRide is designed as one **"Join the queue"** button inside APSpace → Bus Shuttle Services, opening this site with the student's APU sign-in. It uses a matching dark theme with a purple accent, plus a light/dark toggle.
+
 ## Tech stack
 React (Vite) · Tailwind CSS · Firebase Auth (anonymous) · Cloud Firestore (real-time) · `qrcode` · `html5-qrcode` · hosted on Vercel / Firebase Hosting.
 
@@ -39,13 +45,13 @@ npm install
 # paste your Firebase web config into src/lib/config.js
 npm run dev
 ```
-Firebase setup: create a project, enable **Firestore** (test mode) and **Authentication → Anonymous**.
+Firebase setup: create a project, enable **Firestore** and **Authentication → Anonymous**, then paste `firestore.rules` into Firestore → Rules (only signed-in sessions can read/write).
 
 ## Demo script (35 students, 30 seats)
 Admin → **Demo & settings**, then:
-1. **Reset & seed buses.** LRT-1 has 30 seats.
+1. **Reset & seed buses.** The next 3 real departures on every route, 30 seats each.
 2. **34 students arrive** (simulated, 20 s apart).
-3. **They book in queue order.** LRT-1 fills; 4 keep waiting.
+3. **They book in queue order.** The next LRT bus fills; 4 keep waiting.
 4. **You check in** on your phone by scanning `/display`. You're #5, behind everyone who arrived earlier.
 5. **A passenger cancels** → **next in line books**. The seat goes to #1 in line, not to you.
 6. **Boarding:** scan your pass on `/scanner`; simulate the rest with 3 no-shows.

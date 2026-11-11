@@ -86,5 +86,17 @@ export const randomToken = (len = 10) => {
   return Array.from(arr, (n) => chars[n % chars.length]).join('')
 }
 
-export const fmtTime = (ms) =>
-  new Date(tsMs(ms)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+export function fmtTime(ms) {
+  const d = new Date(tsMs(ms))
+  const t = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return d.toDateString() === new Date().toDateString() ? t : `${d.toLocaleDateString([], { weekday: 'short' })} ${t}`
+}
+
+/** "in 7 min", "in 2 h 5 min", "now" */
+export function fmtIn(ms, now = Date.now()) {
+  const mins = Math.round((tsMs(ms) - now) / 60000)
+  if (mins <= 0) return 'now'
+  if (mins < 60) return `in ${mins} min`
+  const h = Math.floor(mins / 60)
+  return h >= 24 ? `in ${Math.round(h / 24)} d` : `in ${h} h${mins % 60 ? ` ${mins % 60} min` : ''}`
+}

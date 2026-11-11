@@ -1,22 +1,72 @@
 @import "tailwindcss";
 
-@theme {
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Theme tokens: light by default, .dark on <html> swaps them. Purple accent to sit naturally inside APSpace. */
+:root {
+  --canvas: #f5f5f8;
+  --surface: #ffffff;
+  --subtle: #efeff4;
+  --line: #e3e3ea;
+  --fg: #111118;
+  --fg2: #3f3f4b;
+  --muted: #6b6b7a;
+  --brand-50: #f5f3ff;
+  --brand-100: #e9e4ff;
+  --brand-900: #2d1d78;
+  color-scheme: light;
+}
+.dark {
+  --canvas: #0c0c10;
+  --surface: #1a1a1f;
+  --subtle: #24242b;
+  --line: #2f2f38;
+  --fg: #f4f4f6;
+  --fg2: #c9c9d2;
+  --muted: #8d8d9b;
+  --brand-50: rgb(139 116 255 / 0.10);
+  --brand-100: rgb(139 116 255 / 0.20);
+  --brand-900: #d9d0ff;
+  color-scheme: dark;
+}
+
+@theme inline {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --color-brand-50: #f0fdfa;
-  --color-brand-100: #ccfbf1;
-  --color-brand-500: #14b8a6;
-  --color-brand-600: #0d9488;
-  --color-brand-700: #0f766e;
-  --color-brand-900: #134e4a;
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-subtle: var(--subtle);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-fg2: var(--fg2);
+  --color-muted: var(--muted);
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-900: var(--brand-900);
+  --color-brand-500: #8b74ff;
+  --color-brand-600: #6c52e8;
+  --color-brand-700: #5a40d4;
 }
 
 html, body, #root { min-height: 100%; }
-body { @apply bg-slate-50 text-slate-900 antialiased; }
+body { @apply bg-canvas text-fg antialiased transition-colors; }
 
-@utility card { @apply bg-white rounded-2xl border border-slate-200 shadow-sm; }
-@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed; }
+@utility card { @apply bg-surface rounded-3xl border border-line shadow-sm; }
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed; }
 @utility btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700; }
-@utility btn-ghost { @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200; }
-@utility btn-danger { @apply btn bg-rose-50 text-rose-700 hover:bg-rose-100; }
-@utility input { @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100; }
-@utility label { @apply block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1; }
+@utility btn-ghost { @apply btn bg-subtle text-fg2 hover:bg-line; }
+@utility btn-danger { @apply btn bg-rose-500/10 text-rose-600 hover:bg-rose-500/20; }
+@utility input { @apply w-full rounded-2xl border border-line bg-surface px-3 py-2.5 text-sm text-fg outline-none placeholder:text-muted focus:border-brand-500 focus:ring-2 focus:ring-brand-100; }
+@utility label { @apply block text-xs font-semibold uppercase tracking-wide text-muted mb-1; }
+
+/* Tinted status colours: keep them readable on dark surfaces */
+.dark .bg-emerald-50, .dark .bg-emerald-100 { background-color: rgb(16 185 129 / 0.15); }
+.dark .bg-rose-50, .dark .bg-rose-100 { background-color: rgb(244 63 94 / 0.15); }
+.dark .bg-amber-50, .dark .bg-amber-100 { background-color: rgb(245 158 11 / 0.15); }
+.dark .bg-sky-100 { background-color: rgb(14 165 233 / 0.15); }
+.dark .bg-violet-50, .dark .bg-violet-100 { background-color: rgb(139 92 246 / 0.15); }
+.dark .text-emerald-800, .dark .text-emerald-700 { color: #6ee7b7; }
+.dark .text-rose-800, .dark .text-rose-700, .dark .text-rose-600 { color: #fda4af; }
+.dark .text-amber-900, .dark .text-amber-800, .dark .text-amber-700 { color: #fcd34d; }
+.dark .text-sky-800 { color: #7dd3fc; }
+.dark .text-violet-800, .dark .text-violet-700 { color: #c4b5fd; }
+.dark .border-violet-300 { border-color: rgb(139 92 246 / 0.45); }

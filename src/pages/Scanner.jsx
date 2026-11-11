@@ -21,7 +21,7 @@ export default function Scanner() {
     setBusy(true)
     try {
       const bk = await boardByQR(text, { busId: busId || undefined })
-      setResult({ ok: true, title: 'Boarded ✓', name: bk.name, sub: `${bk.studentId} · ${bk.busLabel}` })
+      setResult({ ok: true, title: 'Boarded ✓', name: bk.name, sub: `${bk.studentId} · ${routeName(bk.routeId)} ${bk.busLabel}` })
       try { navigator.vibrate?.(80) } catch { /* ignore */ }
     } catch (e) {
       setResult({ ok: false, title: 'Not accepted', sub: e.message })
@@ -39,13 +39,13 @@ export default function Scanner() {
           <label className="label" htmlFor="bus">Scanning for bus</label>
           <select id="bus" className="input" value={busId} onChange={(e) => { setBusId(e.target.value); setResult(null) }}>
             <option value="">Any bus (accept every valid pass)</option>
-            {active.map((b) => <option key={b.id} value={b.id}>{b.label} · {routeName(b.routeId)} · {fmtTime(b.departAt)}</option>)}
+            {active.map((b) => <option key={b.id} value={b.id}>{routeName(b.routeId)} · {fmtTime(b.departAt)}</option>)}
           </select>
           {bus && (
             <div className="mt-3 flex items-center gap-3 text-sm">
               <StatusBadge status={bus.status} />
               <span><b className="tabular-nums">{bus.boarded ?? 0}</b> boarded</span>
-              <span className="text-slate-500">· {bus.booked ?? 0} booked · {bus.capacity} seats</span>
+              <span className="text-muted">· {bus.booked ?? 0} booked · {bus.capacity} seats</span>
             </div>
           )}
         </div>
@@ -61,13 +61,13 @@ export default function Scanner() {
         )}
 
         <details className="card p-4 text-sm">
-          <summary className="cursor-pointer font-medium text-slate-700">Camera not working? Enter pass code manually</summary>
+          <summary className="cursor-pointer font-medium text-fg2">Camera not working? Enter pass code manually</summary>
           <div className="mt-3 flex gap-2">
             <input className="input" value={manual} onChange={(e) => setManual(e.target.value)} placeholder="SMARTRIDE:B:…" />
             <button className="btn-primary" disabled={!manual || busy} onClick={() => scan(manual)}>Check</button>
           </div>
         </details>
-        <p className="text-center text-xs text-slate-500">Passes are single-use and tied to one bus. The scanner checks every pass against the live SmartRide records.</p>
+        <p className="text-center text-xs text-muted">Passes are single-use and tied to one bus. The scanner checks every pass against the live SmartRide records.</p>
       </main>
     </div>
   )
