@@ -3,12 +3,12 @@
 //    These values are safe to commit: Firebase web config is public by design.
 // ─────────────────────────────────────────────────────────────
 export const firebaseConfig = {
-  apiKey: 'REPLACE_ME',
-  authDomain: 'REPLACE_ME.firebaseapp.com',
-  projectId: 'REPLACE_ME',
-  storageBucket: 'REPLACE_ME.appspot.com',
-  messagingSenderId: 'REPLACE_ME',
-  appId: 'REPLACE_ME',
+  apiKey: 'AIzaSyB4oZAGI4O3pLyEOtVsJt1KhWxZIeL3q4s',
+  authDomain: 'smartride-52964.firebaseapp.com',
+  projectId: 'smartride-52964',
+  storageBucket: 'smartride-52964.firebasestorage.app',
+  messagingSenderId: '93345111622',
+  appId: '1:93345111622:web:49fb2a2c2460f2ec73f447',
 }
 
 // ─────────────────────────────────────────────────────────────
