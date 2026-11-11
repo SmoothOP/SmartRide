@@ -1,3 +1,4 @@
+import { TZ, mytDateString } from './timetable'
 // Deterministic SmartRide rules. No AI involved — these decide who can book what.
 // Pure functions so they can be tested and explained.
 
@@ -87,9 +88,9 @@ export const randomToken = (len = 10) => {
 }
 
 export function fmtTime(ms) {
-  const d = new Date(tsMs(ms))
-  const t = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  return d.toDateString() === new Date().toDateString() ? t : `${d.toLocaleDateString([], { weekday: 'short' })} ${t}`
+  const v = tsMs(ms)
+  const t = new Date(v).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: TZ })
+  return mytDateString(v) === mytDateString(Date.now()) ? t : `${new Date(v).toLocaleDateString('en-GB', { weekday: 'short', timeZone: TZ })} ${t}`
 }
 
 /** "in 7 min", "in 2 h 5 min", "now" */

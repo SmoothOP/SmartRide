@@ -7,7 +7,7 @@ export default function Timetable() {
   const [dir, setDir] = useState('from')
   const [open, setOpen] = useState('lrt')
   const now = useNow(30000)
-  const today = new Date(now)
+  const today = now
 
   return (
     <div className="space-y-3">
@@ -49,7 +49,7 @@ export default function Timetable() {
           </div>
         )
       })}
-      <p className="text-center text-xs text-muted">Source: APSpace Bus Shuttle Services timetable</p>
+      <p className="text-center text-xs text-muted">Times in Malaysia time (MYT) · source: APSpace Bus Shuttle Services</p>
     </div>
   )
 }

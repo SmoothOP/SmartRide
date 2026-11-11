@@ -55,22 +55,31 @@ export const timesFrom = (routeId) => parse(FROM_APU[routeId] ?? '')
 export const timesTo = (routeId) => parse(TO_APU[routeId] ?? '')
 
 export const routeName = (id) => ROUTES.find((r) => r.id === id)?.name ?? id
-export const runsOn = (route, date) => !route.fridayOnly || date.getDay() === 5
+// All timetable maths happens in Malaysia time (UTC+8, no daylight saving), whatever the device's own time zone is.
+export const TZ = 'Asia/Kuala_Lumpur'
+const OFFSET = 8 * 3600000
+const myt = (ms) => new Date(Number(ms) + OFFSET) // read with getUTC* to get Malaysian calendar fields
 
-/** Timestamp for "HH:MM" on the given day (local time). */
-export function atTime(day, hhmm) {
+export const mytDay = (ms) => myt(ms).getUTCDay()
+export const runsOn = (route, dayMs) => !route.fridayOnly || mytDay(dayMs) === 5
+
+/** Timestamp for "HH:MM" Malaysia time on the Malaysian calendar day containing dayMs. */
+export function atTime(dayMs, hhmm) {
   const [h, m] = hhmm.split(':').map(Number)
-  const d = new Date(day)
-  d.setHours(h, m, 0, 0)
-  return d.getTime()
+  const d = myt(dayMs)
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h, m) - OFFSET
 }
+
+/** Midnight (Malaysia time) of the day containing ms. */
+export const mytMidnight = (ms) => atTime(ms, '00:00')
+export const mytDateString = (ms) => myt(ms).toISOString().slice(0, 10)
 
 /** Next `count` real departures from APU for a route, after `fromMs` (looks up to 7 days ahead). */
 export function nextDepartures(routeId, fromMs = Date.now(), count = 3) {
   const route = ROUTES.find((r) => r.id === routeId)
   const out = []
   for (let d = 0; d < 7 && out.length < count; d++) {
-    const day = new Date(fromMs + d * 86400000)
+    const day = Number(fromMs) + d * 86400000
     if (!runsOn(route, day)) continue
     for (const t of timesFrom(routeId)) {
       const ms = atTime(day, t)

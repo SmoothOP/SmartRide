@@ -4,7 +4,7 @@ import {
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { DEFAULT_SETTINGS } from './config'
-import { ROUTES, nextDepartures, timesFrom, runsOn, atTime } from './timetable'
+import { ROUTES, nextDepartures, timesFrom, runsOn, atTime, mytDay, mytMidnight, mytDateString } from './timetable'
 import {
   waitingQueue, positionOf, bookingWindow, canBook, isSuspended, distanceM, randomToken, tsMs, freeSeats,
 } from './rules'
@@ -372,10 +372,10 @@ export async function generateHistory() {
   // Evening rush after classes; quieter late morning
   const hourShape = (h) => ({ 10: 0.45, 11: 0.55, 12: 0.75, 13: 0.8, 14: 0.6, 15: 0.75, 16: 0.95, 17: 1.0, 18: 0.9, 19: 0.6, 20: 0.4, 21: 0.35 }[h] ?? 0.5)
   const rows = []
-  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const today = mytMidnight(Date.now())
   for (let d = 28; d >= 1; d--) {
-    const day = new Date(today.getTime() - d * 86400000)
-    const dow = day.getDay()
+    const day = today - d * 86400000 + 12 * 3600000 // midday, Malaysia time
+    const dow = mytDay(day)
     if (dow === 0) continue // assume no Sunday classes
     const dayFactor = dow === 6 ? 0.35 : dow === 5 ? 0.85 : 1
     for (const r of ROUTES) {
@@ -391,7 +391,7 @@ export async function generateHistory() {
         const noShows = Math.round(booked * (0.04 + rand() * 0.1 + (hour >= 17 ? 0.03 : 0)))
         const overflow = Math.max(0, demand - capacity)
         rows.push({
-          day: day.toISOString().slice(0, 10), dow, hour, time: t, departAt: atTime(day, t), routeId: r.id, capacity, demand, booked,
+          day: mytDateString(day), dow, hour, time: t, departAt: atTime(day, t), routeId: r.id, capacity, demand, booked,
           boarded: booked - noShows, noShows, overflow, avgWaitMin: Math.round(3 + (overflow / capacity) * 25 + rand() * 4),
         })
       }
