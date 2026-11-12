@@ -239,18 +239,37 @@ async function deleteAll(name, filter = () => true) {
   }
 }
 
-/** Schedules the next 3 real departures from APU on every route (starting at least 8 minutes from now). */
+/**
+ * Schedules the next 3 real departures from APU on every route (starting at least 8 minutes from now).
+ * Outside service hours (next real bus over an hour away) it schedules demo buses 15 minutes apart instead,
+ * so the demo can be recorded at any time. Those buses are flagged `demo: true`.
+ */
 export async function seedBuses({ capacity = 30 } = {}) {
   const from = Date.now() + 8 * 60000
   const batch = writeBatch(db)
-  ROUTES.forEach((r) => {
-    nextDepartures(r.id, from, 3).forEach(({ time, ms }) => {
+  const hhmm = (ms) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kuala_Lumpur' })
+  ROUTES.forEach((r, ri) => {
+    let deps = nextDepartures(r.id, from, 3)
+    // Need at least two buses within the next hour for the demo to make sense
+    if (deps.length < 2 || deps[1].ms - from > 60 * 60000) {
+      if (r.fridayOnly) return
+      const start = Math.ceil((Date.now() + 12 * 60000) / 300000) * 300000 + (ri % 3) * 300000 // round to 5 min, stagger routes
+      deps = [0, 1, 2].map((k) => ({ ms: start + k * 15 * 60000, demo: true }))
+    }
+    deps.forEach(({ ms, demo }) => {
       batch.set(doc(collection(db, 'buses')), {
-        routeId: r.id, label: time, departAt: ms, capacity, booked: 0, boarded: 0, releasedSeats: 0, status: 'scheduled',
+        routeId: r.id, label: hhmm(ms), departAt: ms, capacity, booked: 0, boarded: 0, releasedSeats: 0, status: 'scheduled', demo: !!demo,
       })
     })
   })
   await batch.commit()
+}
+
+/** One click: fresh buses, N simulated students arrive, and they book in queue order (fills the next bus). */
+export async function setUpRush(routeId = 'lrt', n = 34) {
+  await resetDemo()
+  await simulateArrivals(routeId, n)
+  return simAutoBook(routeId, { firstBusOnly: true })
 }
 
 export async function resetDemo({ keepHistory = true } = {}) {

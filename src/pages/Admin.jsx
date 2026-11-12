@@ -3,7 +3,7 @@ import { ROUTES, routeName } from '../lib/config'
 import { useCollection, useNow, useSettings } from '../lib/hooks'
 import {
   boardingCutoff, departBus, addBus, removeBus, resetDemo, simulateArrivals, simAutoBook, simCancelOne, simBoard,
-  generateHistory, saveSettings, getPosition, resolveAppeal,
+  generateHistory, saveSettings, getPosition, resolveAppeal, setUpRush,
 } from '../lib/api'
 import { upcomingBuses, waitingQueue, freeSeats, fmtTime, fmtIn, tsMs, isSuspended } from '../lib/rules'
 import { TopBar, Badge, StatusBadge, GeminiSlot, useToast, useAction } from '../components/ui'
@@ -89,6 +89,7 @@ function Operations({ busy, run }) {
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-lg font-bold">{fmtTime(b.departAt)}</h3>
                   <StatusBadge status={b.status} />
+                  {b.demo && <Badge>demo schedule</Badge>}
                   <span className="text-sm text-muted">APU → {routeName(b.routeId)} · departs {fmtIn(b.departAt, now)}</span>
                 </div>
                 <CapacityBar bus={b} />
@@ -449,9 +450,7 @@ function Demo({ busy, run }) {
   const [n, setN] = useState(34)
   const [routeId, setRouteId] = useState('lrt')
   const steps = [
-    ['Reset & seed buses', 'Clears queues and bookings, then schedules the next 3 real departures on every route (30 seats each).', () => run(() => resetDemo(), 'Demo reset. Fresh buses scheduled.')],
-    [`${n} students arrive`, `Simulated students check in at the waiting area for ${routeName(routeId)}, 20 s apart.`, () => run(() => simulateArrivals(routeId, Number(n)), `${n} students joined the queue.`)],
-    ['They book in queue order', 'The first 30 fill the next departure. Everyone else keeps waiting in arrival order.', () => run(() => simAutoBook(routeId, { firstBusOnly: true }), (k) => `${k} bookings made in FIFO order.`)],
+    [`Set up the rush (${n} students)`, `Resets everything, schedules fresh buses, ${n} simulated students check in for ${routeName(routeId)} 20 s apart, and the first 30 book the next bus in queue order. Wait for the confirmation message.`, () => run(() => setUpRush(routeId, Number(n)), (k) => `Ready: ${n} students arrived and ${k} booked the next bus. Everyone else is waiting in order.`)],
     ['You check in', 'Open the Student app on your phone, scan the Waiting-area QR and join. You land behind everyone who arrived earlier.', null],
     ['Cancellation → seat reallocated', 'Live operations → next LRT bus → "Sim: a passenger cancels", then "Sim: next in line books". The seat goes to the next person in line, never to someone who arrived later.', null],
     ['Boarding', 'Scan your boarding pass on the Scanner page, then "Sim: board (3 no-shows)" for everyone else.', null],
@@ -480,7 +479,7 @@ function Demo({ busy, run }) {
                 <p className="font-semibold">{title}</p>
                 <p className="text-sm text-fg2">{text}</p>
               </div>
-              {action && <button className="btn-primary h-fit px-3 py-1.5" disabled={busy} onClick={action}>Run</button>}
+              {action && <button className="btn-primary h-fit px-3 py-1.5" disabled={busy} onClick={action}>{busy ? 'Working…' : 'Run'}</button>}
             </li>
           ))}
         </ol>
