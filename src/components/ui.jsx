@@ -146,8 +146,8 @@ export function GeminiSlot({ title, connector, children, compact = false }) {
 export function useToast() {
   const [toast, setToast] = useState(null)
   useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(null), 4000)
+    if (!toast || toast.msg === 'Working…') return
+    const t = setTimeout(() => setToast(null), 5000)
     return () => clearTimeout(t)
   }, [toast])
   const el = toast && (
@@ -161,16 +161,21 @@ export function useToast() {
 /** Run an async action with a busy flag and toast on error. */
 export function useAction(notify) {
   const [busy, setBusy] = useState(false)
+  const busyRef = useRef(false)
   const run = async (fn, okMsg) => {
+    if (busyRef.current) { notify('Still working on the last action, wait a second and try again.'); return }
+    busyRef.current = true
     setBusy(true)
+    notify('Working…')
     try {
       const r = await fn()
-      if (okMsg) notify(typeof okMsg === 'function' ? okMsg(r) : okMsg)
+      notify(okMsg ? (typeof okMsg === 'function' ? okMsg(r) : okMsg) : 'Done')
       return r
     } catch (e) {
       console.error(e)
       notify(e.message || 'Something went wrong', true)
     } finally {
+      busyRef.current = false
       setBusy(false)
     }
   }
